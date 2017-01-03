@@ -1,0 +1,23 @@
+{
+  "name": "zl-audio",
+  "version": "0.0.1",
+  "description": "Total awesomeness for playing sounds in AngularJS",
+  "license": "MIT",
+  "main": "zlAudio.js",
+  "homepage": "https://github.com/zettacristiano/zlAudio/",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/zettacristiano/zlAudio.git"
+  },
+  "ignore":[
+    "app/audio/*.*"
+  ],
+  "dependencies": {
+    "angular": ">=1.2 < 1.6"
+  },
+  "devDependencies": {
+    "jquery": "~2.1.4",
+    "ui-router": "~0.2.15",
+    "bootstrap": "~3.3.5"
+  }
+}
