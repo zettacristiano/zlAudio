@@ -2,600 +2,600 @@
 angular.module('zlAudio', [])
   .constant('zlAudioDomUid', (function () {
     var domUid = '';
-    for (var i=0; i<8; i++)
-    {
+    for (var i = 0; i < 8; i++) {
       domUid = domUid + Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
     }
-    return domUid;//unique id persisting through module life
+    return domUid; //unique id persisting through module life
   })())
-.directive('zlAudio', ['$compile', '$q', 'zlAudio', function($compile, $q, zlAudio) {
+  .directive('zlAudio', ['$compile', '$q', 'zlAudio', function ($compile, $q, zlAudio) {
     return {
-        restrict: 'AEC',
-        scope: {
-            volume: '=',
-            start: '=',
-            currentTime: '=',
-            loop: '=',
-            clickPlay: '=',
-            disablePreload:'='
-            //zlAudio:'='
-        },
-        controller: ['$scope', '$attrs', '$element', '$timeout', function($scope, $attrs, $element, $timeout) {
+      restrict: 'AEC',
+      scope: {
+        volume: '=',
+        start: '=',
+        currentTime: '=',
+        loop: '=',
+        clickPlay: '=',
+        disablePreload: '='
+          //zlAudio:'='
+      },
+      controller: ['$scope', '$attrs', '$element', '$timeout', function ($scope, $attrs, $element, $timeout) {
 
-            /* Loads the sound from destination */
-            var audio;
-            function initSound(){
-                audio = zlAudio.load($attrs.zlAudio, $scope);
-                /* Add audio to local scope for modification with nested inputs */
-                $scope.$audio = audio;
+        /* Loads the sound from destination */
+        var audio;
 
-                /* Remove watching features for improved performance */
-                audio.unbind();
-            }
+        function initSound() {
+          audio = zlAudio.load($attrs.zlAudio, $scope);
+          /* Add audio to local scope for modification with nested inputs */
+          $scope.$audio = audio;
 
-            if (!$scope.disablePreload){
-                initSound();
-            }
-
-
-            $element.on('click', function() {
-                if ($scope.clickPlay === false) {
-                    return;
-                }
-
-                if ($scope.disablePreload){
-                    initSound();
-                }
-
-                /* iOS workaround: Call the play method directly in listener function */
-                audio.audio.play();
-
-                /* Set volume to $scope volume if it exists, or default to audio's current value */
-                audio.volume = $scope.volume || audio.volume;
-                audio.loop = $scope.loop;
-                audio.currentTime = $scope.start || 0;
-
-                /* Fixes a bug with Firefox (???) */
-                $timeout(function() {
-                    audio.play();
-                }, 5);
-            });
-
-            $element.on('$destroy', function() {
-                audio.destroy();
-            });
-        }]
-    };
-}])
-
-.directive('zlAudioHover', ['$compile', '$q', 'zlAudio', function($compile, $q, zlAudio) {
-    return {
-        restrict: 'AEC',
-        controller: ['$scope', '$attrs', '$element', '$timeout', function($scope, $attrs, $element, $timeout) {
-
-            var audio = zlAudio.load($attrs.zlAudioHover, $scope);
-
-            $element.on('mouseover rollover hover', function() {
-
-                /* iOS workaround: Call the play method directly in listener function */
-                audio.audio.play();
-
-                audio.volume = $attrs.volumeHover || audio.volume;
-                audio.loop = $attrs.loop;
-                audio.currentTime = $attrs.startHover || 0;
-
-            });
-
-            $element.on('$destroy', function() {
-                audio.destroy();
-            });
-        }]
-    };
-}])
-
-.service('localAudioFindingService', ['$q', function($q) {
-
-    this.find = function(id) {
-        var deferred = $q.defer();
-        var $sound = document.getElementById(id);
-        if ($sound) {
-            deferred.resolve($sound);
-        } else {
-            deferred.reject(id);
+          /* Remove watching features for improved performance */
+          audio.unbind();
         }
 
-        return deferred.promise;
+        if (!$scope.disablePreload) {
+          initSound();
+        }
+
+
+        $element.on('click', function () {
+          if ($scope.clickPlay === false) {
+            return;
+          }
+
+          if ($scope.disablePreload) {
+            initSound();
+          }
+
+          /* iOS workaround: Call the play method directly in listener function */
+          audio.audio.play();
+
+          /* Set volume to $scope volume if it exists, or default to audio's current value */
+          audio.volume = $scope.volume || audio.volume;
+          audio.loop = $scope.loop;
+          audio.currentTime = $scope.start || 0;
+
+          /* Fixes a bug with Firefox (???) */
+          $timeout(function () {
+            audio.play();
+          }, 5);
+        });
+
+        $element.on('$destroy', function () {
+          audio.destroy();
+        });
+      }]
     };
+  }])
+
+.directive('zlAudioHover', ['$compile', '$q', 'zlAudio', function ($compile, $q, zlAudio) {
+  return {
+    restrict: 'AEC',
+    controller: ['$scope', '$attrs', '$element', '$timeout', function ($scope, $attrs, $element, $timeout) {
+
+      var audio = zlAudio.load($attrs.zlAudioHover, $scope);
+
+      $element.on('mouseover rollover hover', function () {
+
+        /* iOS workaround: Call the play method directly in listener function */
+        audio.audio.play();
+
+        audio.volume = $attrs.volumeHover || audio.volume;
+        audio.loop = $attrs.loop;
+        audio.currentTime = $attrs.startHover || 0;
+
+      });
+
+      $element.on('$destroy', function () {
+        audio.destroy();
+      });
+    }]
+  };
 }])
 
-.service('remoteAudioFindingService', ['$q', 'zlAudioDomUid', function($q, zlAudioDomUid) {
+.service('localAudioFindingService', ['$q', function ($q) {
 
-    this.find = function(url) {
-        var deferred = $q.defer();
-        var $sound = document.getElementById(zlAudioDomUid);
-        if (!$sound)
-        {
-          var audioTag = document.createElement('audio');
-          audioTag.style.display = 'none';
-          audioTag.id = zlAudioDomUid;
-          audioTag.src = url;
-          document.body.appendChild(audioTag);
-          $sound = document.getElementById(zlAudioDomUid);
-          $sound.load();
-        }
-        else
-        {
-          $sound.pause();
-          $sound.src = url;
-          $sound.load();
-        }
+  this.find = function (id) {
+    var deferred = $q.defer();
+    var $sound = document.getElementById(id);
+    if ($sound) {
+      deferred.resolve($sound);
+    } else {
+      deferred.reject(id);
+    }
 
-        if ($sound) {
-          deferred.resolve($sound);
-        } else {
-          deferred.reject(id);
-        }
-
-        return deferred.promise;
-
-    };
+    return deferred.promise;
+  };
 }])
 
-.service('cleverAudioFindingService', ['$q', 'localAudioFindingService', 'remoteAudioFindingService', function($q, localAudioFindingService, remoteAudioFindingService) {
-    this.find = function(id) {
-        var deferred = $q.defer();
+.service('remoteAudioFindingService', ['$q', 'zlAudioDomUid', function ($q, zlAudioDomUid) {
 
-        id = id.replace('|', '/');
+  this.find = function (url) {
+    var deferred = $q.defer();
+    var $sound = document.getElementById(zlAudioDomUid);
+    if (!$sound) {
+      var audioTag = document.createElement('audio');
+      audioTag.style.display = 'none';
+      audioTag.id = zlAudioDomUid;
+      audioTag.src = url;
+      document.body.appendChild(audioTag);
+      $sound = document.getElementById(zlAudioDomUid);
+      $sound.load();
+    } else {
+      $sound.pause();
+      $sound.src = url;
+      $sound.load();
+    }
 
-        localAudioFindingService.find(id)
-            .then(deferred.resolve, function() {
-                return remoteAudioFindingService.find(id);
-            })
-            .then(deferred.resolve, deferred.reject);
+    if ($sound) {
+      deferred.resolve($sound);
+    } else {
+      deferred.reject(id);
+    }
 
-        return deferred.promise;
-    };
+    return deferred.promise;
+
+  };
+}])
+
+.service('cleverAudioFindingService', ['$q', 'localAudioFindingService', 'remoteAudioFindingService', function ($q, localAudioFindingService, remoteAudioFindingService) {
+  this.find = function (id) {
+    var deferred = $q.defer();
+
+    id = id.replace('|', '/');
+
+    localAudioFindingService.find(id)
+      .then(deferred.resolve, function () {
+        return remoteAudioFindingService.find(id);
+      })
+      .then(deferred.resolve, deferred.reject);
+
+    return deferred.promise;
+  };
 }])
 
 .value('zlAudioGlobals', {
-    muting: false,
-    performance: 25,
-    unlock: true,
-    volume:1
+  muting: false,
+  performance: 25,
+  unlock: true,
+  volume: 1
 })
 
-.factory('zlAudioObject', ['cleverAudioFindingService', '$rootScope', '$interval', '$timeout', 'zlAudioGlobals', function(cleverAudioFindingService, $rootScope, $interval, $timeout, zlAudioGlobals) {
-    return function(id, scope) {
+.factory('zlAudioObject', ['cleverAudioFindingService', '$rootScope', '$interval', '$timeout', 'zlAudioGlobals', function (cleverAudioFindingService, $rootScope, $interval, $timeout, zlAudioGlobals) {
+    return function (id, scope) {
 
-        function twiddle(){
-            audio.play();
-            audio.pause();
-            window.removeEventListener("click",twiddle);
+      function twiddle() {
+        if (audio) {
+          audio.play();
+          audio.pause();
         }
+        window.removeEventListener("click", twiddle);
+      }
 
-        var $audioWatch,
-            $intervalWatch,
-            $willPlay = false,
-            $willPause = false,
-            $willRestart = false,
-            $willChangePlaybackRate = false,
-            $newPlaybackRate = false,
-            $volumeToSet,
-            $looping,
-            $isMuting = false,
-            $observeProperties = true,
-            $destroyed = false,
-            $scope = scope || $rootScope,
-            audio,
-            audioObject = this;
+      var $audioWatch,
+        $intervalWatch,
+        $willPlay = false,
+        $willPause = false,
+        $willRestart = false,
+        $willChangePlaybackRate = false,
+        $newPlaybackRate = false,
+        $volumeToSet,
+        $looping,
+        $isMuting = false,
+        $observeProperties = true,
+        $destroyed = false,
+        $scope = scope || $rootScope,
+        audio,
+        audioObject = this;
 
-        this.id = id;
-        this.safeId = id.replace('/', '|');
-        this.loop = 0;
+      this.id = id;
+      this.safeId = id.replace('/', '|');
+      this.loop = 0;
 
-        this.unbind = function() {
-            $observeProperties = false;
-        };
+      this.unbind = function () {
+        $observeProperties = false;
+      };
 
-        this.play = function() {
-            $willPlay = true;
-            return this;
-        };
+      this.play = function () {
+        $willPlay = true;
+        return this;
+      };
 
-        var completeListeners = [];
-        this.complete = function(callback){
-            completeListeners.push(callback);
-        }
+      var completeListeners = [];
+      this.complete = function (callback) {
+        completeListeners.push(callback);
+      }
 
-        var toFinishListeners = [];
-        this.toFinish = function(secs, callback){
-            toFinishListeners.push({'secs': secs, 'callback': callback});
-        }
-
-        this.pause = function() {
-            $willPause = true;
-        };
-
-        this.restart = function() {
-            $willRestart = true;
-        };
-
-        this.stop = function() {
-            this.restart();
-        };
-
-        this.setVolume = function(volume) {
-            $volumeToSet = volume;
-        };
-
-        this.setPlaybackRate = function(rate) {
-            $newPlaybackRate = rate;
-            $willChangePlaybackRate = true;
-        };
-
-        this.setMuting = function(muting) {
-            $isMuting = muting;
-        };
-
-        this.setProgress = function(progress) {
-            if (audio && audio.duration && isFinite(progress)) {
-                audio.currentTime = audio.duration * progress;
-            }
-        };
-
-        this.setCurrentTime = function(currentTime) {
-            if (audio && audio.duration) {
-                audio.currentTime = currentTime;
-            }
-        };
-
-        this.destroy = $destroy;
-
-        $scope.$on('$destroy', function() {
-            $destroy();
+      var toFinishListeners = [];
+      this.toFinish = function (secs, callback) {
+        toFinishListeners.push({
+          'secs': secs,
+          'callback': callback
         });
+      }
 
-        function $destroy() {
-            if (!$destroyed) {
-                if (interval) {
-                    $interval.cancel(interval);
-                }
-                if ($intervalWatch) {
-                    $intervalWatch();
-                }
-                if ($audioWatch) {
-                    $audioWatch();
-                }
-                $destroyed = true;
-            }
+      this.pause = function () {
+        $willPause = true;
+      };
+
+      this.restart = function () {
+        $willRestart = true;
+      };
+
+      this.stop = function () {
+        this.restart();
+      };
+
+      this.setVolume = function (volume) {
+        $volumeToSet = volume;
+      };
+
+      this.setPlaybackRate = function (rate) {
+        $newPlaybackRate = rate;
+        $willChangePlaybackRate = true;
+      };
+
+      this.setMuting = function (muting) {
+        $isMuting = muting;
+      };
+
+      this.setProgress = function (progress) {
+        if (audio && audio.duration && isFinite(progress)) {
+          audio.currentTime = audio.duration * progress;
         }
+      };
 
-        function $setWatch() {
-            if ($destroyed) {
-                return;
-            }
-            $audioWatch = $scope.$watch(function() {
-                return {
-                    volume: audioObject.volume,
-                    currentTime: audioObject.currentTime,
-                    progress: audioObject.progress,
-                    muting: audioObject.muting,
-                    loop: audioObject.loop,
-                    playbackRate: audioObject.playbackRate,
-                    globalVolume: zlAudioGlobals.volume
-                };
-            }, function(newValue, oldValue) {
-                //console.log("zlAudio watch callback for: " + audioObject.id);
-                if (newValue.currentTime !== oldValue.currentTime) {
-                    audioObject.setCurrentTime(newValue.currentTime);
-                }
-
-                if (newValue.progress !== oldValue.progress) {
-                    audioObject.setProgress(newValue.progress);
-                }
-                if (newValue.volume !== oldValue.volume) {
-                    audioObject.setVolume(newValue.volume);
-                }
-
-                if (newValue.playbackRate !== oldValue.playbackRate) {
-                    audioObject.setPlaybackRate(newValue.playbackRate);
-                }
-
-                if (newValue.globalVolume !== oldValue.globalVolume) {
-                    if (newValue.globalVolume === 0) {
-                        audioObject.setMuting(true);
-                    } else {
-                        audioObject.setMuting(false);
-                        audioObject.setVolume(newValue.globalVolume);
-                    }
-                }
-
-
-
-                $looping = newValue.loop;
-
-                if (newValue.muting !== oldValue.muting) {
-                    audioObject.setMuting(newValue.muting);
-                }
-            }, true);
+      this.setCurrentTime = function (currentTime) {
+        if (audio && audio.duration) {
+          audio.currentTime = currentTime;
         }
+      };
 
-        cleverAudioFindingService.find(id)
-            .then(function(nativeAudio) {
-                audio = nativeAudio;
-                if (zlAudioGlobals.unlock) {
+      this.destroy = $destroy;
 
-                    window.addEventListener("click", twiddle);
+      $scope.$on('$destroy', function () {
+        $destroy();
+      });
 
-                    audio.addEventListener('playing', function() {
-                        window.removeEventListener("click",twiddle);
-                    });
+      function $destroy() {
+        if (!$destroyed) {
+          if (interval) {
+            $interval.cancel(interval);
+          }
+          if ($intervalWatch) {
+            $intervalWatch();
+          }
+          if ($audioWatch) {
+            $audioWatch();
+          }
+          $destroyed = true;
+        }
+      }
 
-                }
+      function $setWatch() {
+        if ($destroyed) {
+          return;
+        }
+        $audioWatch = $scope.$watch(function () {
+          return {
+            volume: audioObject.volume,
+            currentTime: audioObject.currentTime,
+            progress: audioObject.progress,
+            muting: audioObject.muting,
+            loop: audioObject.loop,
+            playbackRate: audioObject.playbackRate,
+            globalVolume: zlAudioGlobals.volume
+          };
+        }, function (newValue, oldValue) {
+          //console.log("zlAudio watch callback for: " + audioObject.id);
+          if (newValue.currentTime !== oldValue.currentTime) {
+            audioObject.setCurrentTime(newValue.currentTime);
+          }
 
-                audio.addEventListener('canplay', function() {
-                    audioObject.canPlay = true;
-                });
+          if (newValue.progress !== oldValue.progress) {
+            audioObject.setProgress(newValue.progress);
+          }
+          if (newValue.volume !== oldValue.volume) {
+            audioObject.setVolume(newValue.volume);
+          }
 
-            }, function(error) {
-                audioObject.error = true;
-                console.warn(error);
+          if (newValue.playbackRate !== oldValue.playbackRate) {
+            audioObject.setPlaybackRate(newValue.playbackRate);
+          }
+
+          if (newValue.globalVolume !== oldValue.globalVolume) {
+            if (newValue.globalVolume === 0) {
+              audioObject.setMuting(true);
+            } else {
+              audioObject.setMuting(false);
+              audioObject.setVolume(newValue.globalVolume);
+            }
+          }
+
+
+
+          $looping = newValue.loop;
+
+          if (newValue.muting !== oldValue.muting) {
+            audioObject.setMuting(newValue.muting);
+          }
+        }, true);
+      }
+
+      cleverAudioFindingService.find(id)
+        .then(function (nativeAudio) {
+          audio = nativeAudio;
+          if (zlAudioGlobals.unlock) {
+
+            window.addEventListener("click", twiddle);
+
+            audio.addEventListener('playing', function () {
+              window.removeEventListener("click", twiddle);
             });
 
+          }
 
-        var interval = $interval(checkWatchers, zlAudioGlobals.performance);
-        $intervalWatch = $scope.$watch(function(){
-            return zlAudioGlobals.performance;
-        },function(){
-            $interval.cancel(interval);
-            interval = $interval(checkWatchers, zlAudioGlobals.performance);
-        })
+          audio.addEventListener('canplay', function () {
+            audioObject.canPlay = true;
+          });
 
-        function checkWatchers() {
-            if ($audioWatch) {
-                $audioWatch();
-            }
-            if (audio) {
+        }, function (error) {
+          audioObject.error = true;
+          console.warn(error);
+        });
 
-                if ($isMuting || zlAudioGlobals.muting) {
-                    audio.volume = 0;
-                } else {
-                    audio.volume = audioObject.volume !== undefined ? audioObject.volume : 1;
-                }
 
-                if ($willPlay) {
-                    audio.play();
-                    $willPlay = false;
-                }
+      var interval = $interval(checkWatchers, zlAudioGlobals.performance);
+      $intervalWatch = $scope.$watch(function () {
+        return zlAudioGlobals.performance;
+      }, function () {
+        $interval.cancel(interval);
+        interval = $interval(checkWatchers, zlAudioGlobals.performance);
+      })
 
-                if ($willRestart) {
-                    audio.pause();
-                    audio.currentTime = 0;
-                    $willRestart = false;
-                }
-
-                if ($willPause) {
-                    audio.pause();
-                    $willPause = false;
-                }
-
-                if ($willChangePlaybackRate) {
-                    audio.playbackRate = $newPlaybackRate;
-                    $willChangePlaybackRate = false;
-                }
-
-                if ($volumeToSet) {
-                    audio.volume = $volumeToSet;
-                    $volumeToSet = undefined;
-                }
-
-                if ($observeProperties) {
-                    audioObject.currentTime = audio.currentTime;
-                    audioObject.duration = audio.duration;
-                    audioObject.remaining = audio.duration - audio.currentTime;
-					audioObject.progress = 0; //We set initial value to 0
-                    audioObject.paused = audio.paused;
-                    audioObject.src = audio.src;
-
-					//After we check if progress is bigger than 0, and we set
-                    var tempProgress = (audio.currentTime / audio.duration);
-                    if(tempProgress  > 0 ){
-                      audioObject.progress = tempProgress;
-                    }
-
-                    if (audioObject.currentTime >= audioObject.duration) {
-                        completeListeners.forEach(function(listener){
-                            listener(audioObject);
-                        })
-                    }
-
-                    toFinishListeners.forEach(function(listener) {
-                        if ((audioObject.duration - audioObject.currentTime) <= listener.secs) {
-                            listener.callback(audioObject);
-                            toFinishListeners.shift();
-                        }
-                    })
-
-                    if ($looping && audioObject.currentTime >= audioObject.duration) {
-                        if ($looping !== true) {
-                            $looping--;
-                            audioObject.loop--;
-                            // if (!$looping) return;
-                        }
-                        audioObject.setCurrentTime(0);
-                        audioObject.play();
-
-                    }
-                }
-
-                if (!$isMuting && !zlAudioGlobals.muting) {
-                    audioObject.volume = audio.volume;
-                }
-
-                audioObject.audio = audio;
-            }
-
-            $setWatch();
+      function checkWatchers() {
+        if ($audioWatch) {
+          $audioWatch();
         }
-    };
-}])
-.service('zlAudio', ['zlAudioObject', 'zlAudioGlobals', function(zlAudioObject, zlAudioGlobals) {
-    this.play = function(id, scope) {
+        if (audio) {
 
-        var audio = new zlAudioObject(id, scope);
-        audio.play();
-        return audio;
+          if ($isMuting || zlAudioGlobals.muting) {
+            audio.volume = 0;
+          } else {
+            audio.volume = audioObject.volume !== undefined ? audioObject.volume : 1;
+          }
+
+          if ($willPlay) {
+            audio.play();
+            $willPlay = false;
+          }
+
+          if ($willRestart) {
+            audio.pause();
+            audio.currentTime = 0;
+            $willRestart = false;
+          }
+
+          if ($willPause) {
+            audio.pause();
+            $willPause = false;
+          }
+
+          if ($willChangePlaybackRate) {
+            audio.playbackRate = $newPlaybackRate;
+            $willChangePlaybackRate = false;
+          }
+
+          if ($volumeToSet) {
+            audio.volume = $volumeToSet;
+            $volumeToSet = undefined;
+          }
+
+          if ($observeProperties) {
+            audioObject.currentTime = audio.currentTime;
+            audioObject.duration = audio.duration;
+            audioObject.remaining = audio.duration - audio.currentTime;
+            audioObject.progress = 0; //We set initial value to 0
+            audioObject.paused = audio.paused;
+            audioObject.src = audio.src;
+
+            //After we check if progress is bigger than 0, and we set
+            var tempProgress = (audio.currentTime / audio.duration);
+            if (tempProgress > 0) {
+              audioObject.progress = tempProgress;
+            }
+
+            if (audioObject.currentTime >= audioObject.duration) {
+              completeListeners.forEach(function (listener) {
+                listener(audioObject);
+              })
+            }
+
+            toFinishListeners.forEach(function (listener) {
+              if ((audioObject.duration - audioObject.currentTime) <= listener.secs) {
+                listener.callback(audioObject);
+                toFinishListeners.shift();
+              }
+            })
+
+            if ($looping && audioObject.currentTime >= audioObject.duration) {
+              if ($looping !== true) {
+                $looping--;
+                audioObject.loop--;
+                // if (!$looping) return;
+              }
+              audioObject.setCurrentTime(0);
+              audioObject.play();
+
+            }
+          }
+
+          if (!$isMuting && !zlAudioGlobals.muting) {
+            audioObject.volume = audio.volume;
+          }
+
+          audioObject.audio = audio;
+        }
+
+        $setWatch();
+      }
+    };
+  }])
+  .service('zlAudio', ['zlAudioObject', 'zlAudioGlobals', function (zlAudioObject, zlAudioGlobals) {
+    this.play = function (id, scope) {
+
+      var audio = new zlAudioObject(id, scope);
+      audio.play();
+      return audio;
     };
 
-    this.load = function(id, scope) {
-        return new zlAudioObject(id, scope);
+    this.load = function (id, scope) {
+      return new zlAudioObject(id, scope);
     };
 
-    this.mute = function() {
-        zlAudioGlobals.muting = true;
+    this.mute = function () {
+      zlAudioGlobals.muting = true;
     };
 
-    this.unmute = function() {
-        zlAudioGlobals.muting = false;
+    this.unmute = function () {
+      zlAudioGlobals.muting = false;
     };
 
-    this.toggleMute = function() {
-        zlAudioGlobals.muting = !zlAudioGlobals.muting;
+    this.toggleMute = function () {
+      zlAudioGlobals.muting = !zlAudioGlobals.muting;
     };
 
-    this.setUnlock = function(unlock) {
+    this.setUnlock = function (unlock) {
       zlAudioGlobals.unlock = unlock;
     };
 
-    this.setGlobalVolume = function(globalVolume) {
+    this.setGlobalVolume = function (globalVolume) {
       zlAudioGlobals.volume = globalVolume;
     };
-}])
-.filter("zlTrackTime", function () {
+  }])
+  .filter("zlTrackTime", function () {
     /* Conveniently takes a number and returns the track time */
     return function (input) {
-        var totalSec = Math.floor(input | 0);
+      var totalSec = Math.floor(input | 0);
 
-        var output = "";
-        var hours = 0;
-        var minutes = 0;
-        var seconds = 0;
-        var millisecond = "0";
-        if (typeof input !== "undefined") {
-            millisecond = input.toString().split(".")[1];
-        }    
+      var output = "";
+      var hours = 0;
+      var minutes = 0;
+      var seconds = 0;
+      var millisecond = "0";
+      if (typeof input !== "undefined") {
+        millisecond = input.toString().split(".")[1];
+      }
 
-        if (totalSec > 3599) {
-            hours = Math.floor(totalSec / 3600);
-            minutes = Math.floor((totalSec - (hours * 3600)) / 60);
-            seconds = (totalSec - ((minutes * 60) + (hours * 3600)));
+      if (totalSec > 3599) {
+        hours = Math.floor(totalSec / 3600);
+        minutes = Math.floor((totalSec - (hours * 3600)) / 60);
+        seconds = (totalSec - ((minutes * 60) + (hours * 3600)));
 
-            if (hours.toString().length == 1) {
-                hours = "0" + (Math.floor(totalSec / 3600)).toString();
-            }
-
-            if (minutes.toString().length == 1) {
-                minutes = "0" + (Math.floor((totalSec - (hours * 3600)) / 60)).toString();
-            }
-
-            if (seconds.toString().length == 1) {
-                seconds = "0" + (totalSec - ((minutes * 60) + (hours * 3600))).toString();
-            }
-
-            output = hours + ":" + minutes + ":" + seconds;
+        if (hours.toString().length == 1) {
+          hours = "0" + (Math.floor(totalSec / 3600)).toString();
         }
-        else if (totalSec > 59) {
-            minutes = Math.floor(totalSec / 60);
-            seconds = totalSec - (minutes * 60);
 
-            if (minutes.toString().length == 1) {
-                minutes = "0" + (Math.floor(totalSec / 60)).toString();
-            }
-
-            if (seconds.toString().length == 1) {
-                seconds = "0" + (totalSec - (minutes * 60)).toString();
-            }
-
-            output = minutes + ":" + seconds;
+        if (minutes.toString().length == 1) {
+          minutes = "0" + (Math.floor((totalSec - (hours * 3600)) / 60)).toString();
         }
-        else {
-            seconds = totalSec;
 
-            if (seconds.toString().length == 1) {
-                seconds = "0" + (totalSec).toString();
-            }
-
-            output = "00:" + seconds;
+        if (seconds.toString().length == 1) {
+          seconds = "0" + (totalSec - ((minutes * 60) + (hours * 3600))).toString();
         }
-        if (typeof millisecond !== "undefined") {
-            output += "." + millisecond.substring(0, 1);
-        }    
-        return output;
+
+        output = hours + ":" + minutes + ":" + seconds;
+      } else if (totalSec > 59) {
+        minutes = Math.floor(totalSec / 60);
+        seconds = totalSec - (minutes * 60);
+
+        if (minutes.toString().length == 1) {
+          minutes = "0" + (Math.floor(totalSec / 60)).toString();
+        }
+
+        if (seconds.toString().length == 1) {
+          seconds = "0" + (totalSec - (minutes * 60)).toString();
+        }
+
+        output = minutes + ":" + seconds;
+      } else {
+        seconds = totalSec;
+
+        if (seconds.toString().length == 1) {
+          seconds = "0" + (totalSec).toString();
+        }
+
+        output = "00:" + seconds;
+      }
+      if (typeof millisecond !== "undefined") {
+        output += "." + millisecond.substring(0, 1);
+      }
+      return output;
     };
-})
-.filter("trackTime", function(){
+  })
+  .filter("trackTime", function () {
     /* Conveniently takes a number and returns the track time */
 
-    return function(input){
+    return function (input) {
 
-        var totalSec = Math.floor(input | 0);
+      var totalSec = Math.floor(input | 0);
 
-        var output = "";
-        var hours = 0;
-        var minutes = 0;
-        var seconds = 0;
+      var output = "";
+      var hours = 0;
+      var minutes = 0;
+      var seconds = 0;
 
-        if (totalSec > 3599) {
+      if (totalSec > 3599) {
 
-            hours = Math.floor(totalSec / 3600);
-            minutes = Math.floor((totalSec - (hours * 3600)) / 60);
-            seconds = (totalSec - ((minutes * 60) + (hours * 3600)));
+        hours = Math.floor(totalSec / 3600);
+        minutes = Math.floor((totalSec - (hours * 3600)) / 60);
+        seconds = (totalSec - ((minutes * 60) + (hours * 3600)));
 
-            if (hours.toString().length == 1) {
-                hours = "0" + (Math.floor(totalSec / 3600)).toString();
-            }
-
-            if (minutes.toString().length == 1) {
-                minutes = "0" + (Math.floor((totalSec - (hours * 3600)) / 60)).toString();
-            }
-
-            if (seconds.toString().length == 1) {
-                seconds = "0" + (totalSec - ((minutes * 60) + (hours * 3600))).toString();
-            }
-
-            output = hours + ":" + minutes + ":" + seconds;
-
-        } else if (totalSec > 59) {
-
-            minutes = Math.floor(totalSec / 60);
-            seconds = totalSec - (minutes * 60);
-
-            if (minutes.toString().length == 1) {
-                 minutes = "0" + (Math.floor(totalSec / 60)).toString();
-            }
-
-            if (seconds.toString().length == 1) {
-                 seconds = "0" + (totalSec - (minutes * 60)).toString();
-            }
-
-            output = minutes + ":" + seconds;
-
-        } else {
-
-            seconds = totalSec;
-
-            if (seconds.toString().length == 1) {
-                seconds = "0" + (totalSec).toString();
-            }
-
-            output = totalSec + "s";
-
+        if (hours.toString().length == 1) {
+          hours = "0" + (Math.floor(totalSec / 3600)).toString();
         }
 
-        if (typeof Number.isNaN === "function" && Number.isNaN(output)){
-            debugger;
+        if (minutes.toString().length == 1) {
+          minutes = "0" + (Math.floor((totalSec - (hours * 3600)) / 60)).toString();
         }
 
-        return output;
+        if (seconds.toString().length == 1) {
+          seconds = "0" + (totalSec - ((minutes * 60) + (hours * 3600))).toString();
+        }
+
+        output = hours + ":" + minutes + ":" + seconds;
+
+      } else if (totalSec > 59) {
+
+        minutes = Math.floor(totalSec / 60);
+        seconds = totalSec - (minutes * 60);
+
+        if (minutes.toString().length == 1) {
+          minutes = "0" + (Math.floor(totalSec / 60)).toString();
+        }
+
+        if (seconds.toString().length == 1) {
+          seconds = "0" + (totalSec - (minutes * 60)).toString();
+        }
+
+        output = minutes + ":" + seconds;
+
+      } else {
+
+        seconds = totalSec;
+
+        if (seconds.toString().length == 1) {
+          seconds = "0" + (totalSec).toString();
+        }
+
+        output = totalSec + "s";
+
+      }
+
+      if (typeof Number.isNaN === "function" && Number.isNaN(output)) {
+        debugger;
+      }
+
+      return output;
     }
-});
+  });
