@@ -1,6 +1,6 @@
 {
   "name": "zl-audio",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Total awesomeness for playing sounds in AngularJS",
   "license": "MIT",
   "main": "zlAudio.js",
